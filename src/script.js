@@ -71,9 +71,9 @@ camera.position.y = 1
 camera.position.z = 1
 scene.add(camera)
 
-// // Controls
-// const controls = new OrbitControls(camera, canvas)
-// controls.enableDamping = true
+// // Orbit controls
+// const orbitControls = new OrbitControls(camera, canvas)
+// orbitControls.enableDamping = true
 
 /**
  * Physics world
@@ -97,15 +97,12 @@ sky.material.uniforms.rayleigh.value = 3
 sky.material.uniforms.mieCoefficient.value = 0.005
 sky.material.uniforms.mieDirectionalG.value = 0.7
 
-const phi = THREE.MathUtils.degToRad(90 - 2)
-const theta = THREE.MathUtils.degToRad(- 70)
-
-const spherical = new THREE.Spherical(1, phi, theta)
+const spherical = new THREE.Spherical(1, 1.53, - 1.22) // Radius, Phi and teta
 const sunPosition = new THREE.Vector3()
 sunPosition.setFromSpherical(spherical)
 
 sky.material.uniforms.sunPosition.value = sunPosition
-sky.scale.setScalar(450000)
+sky.scale.setScalar(1000)
 scene.add(sky)
 
 /**
@@ -119,61 +116,55 @@ const cityLines = 40
 const cityInterbuilding = citySize / cityLines
 const cityMaxDistance = Math.hypot(citySize * 0.5, citySize * 0.5)
 
-const createBuildings = () =>
+for(let i = 0; i < cityLines; i++)
 {
-    for(let i = 0; i < cityLines; i++)
+    for(let j = 0; j < cityLines; j++)
     {
-        for(let j = 0; j < cityLines; j++)
+        const building = {}
+        building.collapsed = false
+
+        // Info
+        const width = (0.5 + 0.5 * Math.random()) * 0.4
+        const depth = (0.5 + 0.5 * Math.random()) * 0.4
+
+        const xRandomness = Math.random() * cityInterbuilding * 0.3
+        const zRandomness = Math.random() * cityInterbuilding * 0.3
+
+        building.x = i / cityLines * citySize - citySize * 0.5 + xRandomness
+        building.z = j / cityLines * citySize - citySize * 0.5 + zRandomness
+        
+        const distanceToCenter = Math.hypot(building.x, building.z)
+        const distanceRatio = distanceToCenter / cityMaxDistance * 1.5
+        
+        const height = Math.random() * (1 - distanceRatio) * 2
+        building.y = height * 0.5
+        
+        if(height > 0.04 && Math.random() < 0.8)
         {
-            const building = {}
-            building.collapsed = false
+            // Body
+            building.body = world.add({ 
+                type: 'box',
+                size: [width, height, depth], // size of shape
+                pos: [building.x, building.y, building.z],
+                rot: [0, 0, 0],
+                move: true,
+                density: 1,
+                friction: 1,
+                restitution: 1.25
+            })
 
-            // Info
-            const width = (0.5 + 0.5 * Math.random()) * 0.4
-            const depth = (0.5 + 0.5 * Math.random()) * 0.4
+            // Mesh
+            building.mesh = new THREE.Mesh(buildingGeometry, buildingMaterial)
+            building.mesh.scale.set(width, height, depth)
+            building.mesh.receiveShadow = true
+            building.mesh.castShadow = true
+            scene.add(building.mesh)
 
-            const xRandomness = Math.random() * cityInterbuilding * 0.3
-            const zRandomness = Math.random() * cityInterbuilding * 0.3
-
-            building.x = i / cityLines * citySize - citySize * 0.5 + xRandomness
-            building.z = j / cityLines * citySize - citySize * 0.5 + zRandomness
-            
-            const distanceToCenter = Math.hypot(building.x, building.z)
-            const distanceRatio = distanceToCenter / cityMaxDistance * 1.5
-            
-            const height = Math.random() * (1 - distanceRatio) * 2
-            building.y = height * 0.5
-            const build = distanceRatio > (1 - Math.pow(1 - Math.random(), 3))
-
-            if(!build)
-            {
-                // Body
-                building.body = world.add({ 
-                    type: 'box',
-                    size: [width, height, depth], // size of shape
-                    pos: [building.x, building.y, building.z],
-                    rot: [0, 0, 0],
-                    move: true,
-                    density: 1,
-                    friction: 1,
-                    restitution: 1.25
-                })
-
-                // Mesh
-                building.mesh = new THREE.Mesh(buildingGeometry, buildingMaterial)
-                building.mesh.scale.set(width, height, depth)
-                building.mesh.receiveShadow = true
-                building.mesh.castShadow = true
-                scene.add(building.mesh)
-
-                // Save
-                buildings.push(building)
-            }
+            // Save
+            buildings.push(building)
         }
     }
 }
-
-createBuildings()
 
 /**
  * Floor
@@ -206,7 +197,6 @@ const kaijuBody = world.add({
     type: 'box',
     size: [0.8, 0.8, 0.8], // size of shape
     pos: [citySize * 0.5, 0.4, 0],
-    rot: [0, 0, 0],
     move: true,
     density: 20,
     friction: 0.4,
@@ -390,7 +380,7 @@ const tick = () =>
     }
 
     // // Update controls
-    // controls.update()
+    // orbitControls.update()
 
     // Update kaiju
     kaijuSpeed = kaijuGroup.position.distanceTo(kaijuBody.position) / deltaTime
