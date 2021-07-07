@@ -216,7 +216,7 @@ const kaijuBody = world.add({
 const loadKaiju = (_name) =>
 {
     gltfLoader.load(
-        `./${_name}/scene.gltf`,
+        `https://bruno-simon.com/trost-codes/kaijus-demolition-services/${_name}/scene.gltf`,
         (_gltf) =>
         {
             const scale = _name === 'godzilla' ? 0.0015 : 0.5
